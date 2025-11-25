@@ -99,11 +99,10 @@ jobs:
       - name: Build AppImage
         run: |
           # 使用 AppImage 配置构建
+          # 注意：此构建不包含签名。如需签名，请在 GitHub Secrets 中配置 TAURI_PRIVATE_KEY 和 TAURI_KEY_PASSWORD
           pnpm tauri build --target x86_64-unknown-linux-gnu --config src-tauri/tauri.linux.appimage.conf.json
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
 
       - name: Get Version
         id: version
