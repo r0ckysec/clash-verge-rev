@@ -71,21 +71,14 @@ jobs:
 
       - name: Create AppImage Config
         run: |
-          # 备份原始配置
-          cp src-tauri/tauri.conf.json src-tauri/tauri.conf.json.backup
-
-          # 移除公钥配置以避免强制签名要求
-          # 使用 jq 移除 plugins.updater.pubkey
-          jq 'del(.plugins.updater.pubkey)' src-tauri/tauri.conf.json > src-tauri/tauri.conf.tmp.json
-          mv src-tauri/tauri.conf.tmp.json src-tauri/tauri.conf.json
-
-          # 创建包含 AppImage 的配置
+          # 创建包含 AppImage 的配置，禁用 updater 插件以避免签名要求
           cat > src-tauri/tauri.linux.appimage.conf.json << 'EOF'
           {
             "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
             "identifier": "io.github.clash-verge-rev.clash-verge-rev",
             "bundle": {
               "targets": ["appimage"],
+              "createUpdaterArtifacts": false,
               "linux": {
                 "appimage": {
                   "bundleMediaFramework": true
@@ -98,25 +91,17 @@ jobs:
                 "./sidecar/verge-mihomo",
                 "./sidecar/verge-mihomo-alpha"
               ]
-            }
+            },
+            "plugins": {}
           }
           EOF
 
       - name: Build AppImage
         run: |
-          # 使用 AppImage 配置构建
-          # 注意：此构建不包含签名。如需签名，请在 GitHub Secrets 中配置 TAURI_PRIVATE_KEY 和 TAURI_KEY_PASSWORD
+          # 使用独立的 AppImage 配置构建（禁用 updater 插件，无需签名）
           pnpm tauri build --target x86_64-unknown-linux-gnu --config src-tauri/tauri.linux.appimage.conf.json
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
-
-      - name: Restore Original Config
-        if: always()
-        run: |
-          # 恢复原始配置文件
-          if [ -f src-tauri/tauri.conf.json.backup ]; then
-            mv src-tauri/tauri.conf.json.backup src-tauri/tauri.conf.json
-          fi
 
       - name: Get Version
         id: version
