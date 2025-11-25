@@ -42,6 +42,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            jq \
             libxslt1.1 \
             libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev \
@@ -71,7 +72,12 @@ jobs:
       - name: Create AppImage Config
         run: |
           # 备份原始配置
-          cp src-tauri/tauri.linux.conf.json src-tauri/tauri.linux.conf.json.backup
+          cp src-tauri/tauri.conf.json src-tauri/tauri.conf.json.backup
+
+          # 移除公钥配置以避免强制签名要求
+          # 使用 jq 移除 plugins.updater.pubkey
+          jq 'del(.plugins.updater.pubkey)' src-tauri/tauri.conf.json > src-tauri/tauri.conf.tmp.json
+          mv src-tauri/tauri.conf.tmp.json src-tauri/tauri.conf.json
 
           # 创建包含 AppImage 的配置
           cat > src-tauri/tauri.linux.appimage.conf.json << 'EOF'
@@ -103,6 +109,14 @@ jobs:
           pnpm tauri build --target x86_64-unknown-linux-gnu --config src-tauri/tauri.linux.appimage.conf.json
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
+
+      - name: Restore Original Config
+        if: always()
+        run: |
+          # 恢复原始配置文件
+          if [ -f src-tauri/tauri.conf.json.backup ]; then
+            mv src-tauri/tauri.conf.json.backup src-tauri/tauri.conf.json
+          fi
 
       - name: Get Version
         id: version
